@@ -1,12 +1,32 @@
 var express = require('express');
-var router = express.Router();
+var router  = express.Router();
 
 router.get('/', function(req, res, next) {
-
-  //fetch from spaceX
-
   
-  res.json([{}]);
+  //fetch from spaceX
+  const urlLaunches = "https://api.spacexdata.com/v3/launches";
+  const urlRocets   = "https://api.spacexdata.com/v3/rockets";
+
+  async function fetchLaunchesAndRockets() {
+    const [launchesResponse, rocketsResponse] = await Promise.all([
+      fetch(urlLaunches),
+      fetch(urlRocets)
+    ]);
+  
+    const launches = await launchesResponse.json();
+    const rockets = await rocketsResponse.json();
+  
+    return [launches, rockets];
+  }
+  
+  fetchLaunchesAndRockets().then(([launches, rockets]) => {
+    let final = [];
+    final.push(launches);
+    final.push(rockets);
+    res.send(final);
+  }).catch((err) => {
+    return next(err);
+  });
 });
 
 //test front hardcoded
