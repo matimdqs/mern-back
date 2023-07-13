@@ -1,118 +1,80 @@
 var express = require('express');
+var _ = require('underscore');
 var router  = express.Router();
+
+var mongoose = require('mongoose');
+var Favorite = require('../models/Favorite.js');
 
 router.get('/', function(req, res, next) {
   
+  const user_id = 33; //hardcoded;  
+
   //fetch from spaceX
   const urlLaunches = "https://api.spacexdata.com/v3/launches";
-  const urlRocets   = "https://api.spacexdata.com/v3/rockets";
+  const urlRockets   = "https://api.spacexdata.com/v3/rockets";
 
-  async function fetchLaunchesAndRockets() {
-    const [launchesResponse, rocketsResponse] = await Promise.all([
+  async function fetchLaunchesRocketsFavorites() {
+    const [launchesResponse, rocketsResponse, favoritesResult] = await Promise.all([
       fetch(urlLaunches),
-      fetch(urlRocets)
+      fetch(urlRockets),
+      Favorite.find({'user_id': user_id})
     ]);
-  
+      
     const launches = await launchesResponse.json();
     const rockets = await rocketsResponse.json();
+    const favorites = await JSON.parse(JSON.stringify(favoritesResult));
   
-    return [launches, rockets];
+    return [launches, rockets, favorites];
   }
-  
-  fetchLaunchesAndRockets().then(([launches, rockets]) => {
+
+  //Once I got everything Una vez tengo todo hago merge y response
+  fetchLaunchesRocketsFavorites().then(([launches, rockets, favorites]) => {
     let final = [];
-    final.push(launches);
-    final.push(rockets);
+
+    _.map(launches, function(launch){
+      
+      //reduced dataset to send frontend
+      var rocket = {
+        "rocket_id": launch.rocket.rocket_id,
+        "rocket_name": launch.rocket.rocket_name
+      };
+
+      //grab rocket missing information
+      for (const fullRocket of rockets) {
+        if (fullRocket.rocket_id === rocket.rocket_id) {
+          rocket.active = fullRocket.active;
+          rocket.cost_per_launch = fullRocket.cost_per_launch;
+          rocket.company = fullRocket.company;          
+          break;
+        }
+      }  
+
+      var flight = {
+        "favorite": false,
+        "flight_number": launch.flight_number,
+        "mission_name": launch.mission_name,
+        "mission_patch": launch.links.mission_patch,
+        "details": launch.details,
+        "rocket": rocket
+      };
+
+      //check flag favorite      
+      if(!_.isEmpty(favorites)){
+        for (const fav of favorites) {
+          if (fav.launch_id === flight.flight_number){
+            flight.favorite = true;
+            break;
+          }
+        }
+      }
+
+      final.push(flight);
+    });
+
     res.send(final);
   }).catch((err) => {
     return next(err);
   });
 });
-
-//test front hardcoded
-/*
-router.get('/', function(req, res, next) {
-res.json([
-  {
-    "flight_number": 39,
-    "mission_name": "NROL-76",
-    "mission_patch": "https://images2.imgbox.com/be/e7/iNqsqVYM_o.png",
-    "details": "Residual stage 1 thrust led to collision between stage 1 and stage 2",
-      "rocket": {
-        "rocket_id": "falcon9",
-        "rocket_name": "Falcon 9",
-        "active": true,
-        "cost_per_launch": 6700000,
-        "company": "SpaceX"
-      }
-  },
-  {
-    "flight_number": 39,
-    "mission_name": "NROL-76",
-    "mission_patch": "https://images2.imgbox.com/be/e7/iNqsqVYM_o.png",
-    "details": "Residual stage 1 thrust led to collision between stage 1 and stage 2",
-      "rocket": {
-        "rocket_id": "falcon9",
-        "rocket_name": "Falcon 9",
-        "active": true,
-        "cost_per_launch": 6700000,
-        "company": "SpaceX"
-      }
-  },
-  {
-    "flight_number": 39,
-    "mission_name": "NROL-76",
-    "mission_patch": "https://images2.imgbox.com/be/e7/iNqsqVYM_o.png",
-    "details": "Residual stage 1 thrust led to collision between stage 1 and stage 2",
-      "rocket": {
-        "rocket_id": "falcon9",
-        "rocket_name": "Falcon 9",
-        "active": true,
-        "cost_per_launch": 6700000,
-        "company": "SpaceX"
-      }
-  },
-  {
-    "flight_number": 39,
-    "mission_name": "NROL-76",
-    "mission_patch": "https://images2.imgbox.com/be/e7/iNqsqVYM_o.png",
-    "details": "Residual stage 1 thrust led to collision between stage 1 and stage 2",
-      "rocket": {
-        "rocket_id": "falcon9",
-        "rocket_name": "Falcon 9",
-        "active": true,
-        "cost_per_launch": 6700000,
-        "company": "SpaceX"
-      }
-  },
-  {
-    "flight_number": 39,
-    "mission_name": "NROL-76",
-    "mission_patch": "https://images2.imgbox.com/be/e7/iNqsqVYM_o.png",
-    "details": "Residual stage 1 thrust led to collision between stage 1 and stage 2",
-      "rocket": {
-        "rocket_id": "falcon9",
-        "rocket_name": "Falcon 9",
-        "active": true,
-        "cost_per_launch": 6700000,
-        "company": "SpaceX"
-      }
-  },
-  {
-    "flight_number": 39,
-    "mission_name": "NROL-76",
-    "mission_patch": "https://images2.imgbox.com/be/e7/iNqsqVYM_o.png",
-    "details": "Residual stage 1 thrust led to collision between stage 1 and stage 2",
-      "rocket": {
-        "rocket_id": "falcon9",
-        "rocket_name": "Falcon 9",
-        "active": true,
-        "cost_per_launch": 6700000,
-        "company": "SpaceX"
-      }
-  }
-  ]);
-});
-*/
 
 module.exports = router;
