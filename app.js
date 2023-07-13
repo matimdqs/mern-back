@@ -1,5 +1,6 @@
 var express = require('express');
 var path = require('path');
+var cors = require('cors');
 
 // Import the mongoose module
 const mongoose = require("mongoose");
@@ -31,7 +32,8 @@ var app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser())
+app.use(cookieParser());
+app.use(cors());
 
 app.use('/api/v1/launches', launches);
 app.use('/api/v1/favorites', favorites);
