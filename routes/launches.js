@@ -1,10 +1,10 @@
 var express = require('express');
-var _ = require('underscore');
 var router  = express.Router();
 
 var mongoose = require('mongoose');
 var Favorite = require('../models/Favorite.js');
 
+//TODO: SpaceX service decouple
 router.get('/', function(req, res, next) {
   
   const user_id = 33; //hardcoded;  
@@ -27,29 +27,27 @@ router.get('/', function(req, res, next) {
     return [launches, rockets, favorites];
   }
 
-  //Once I got everything Una vez tengo todo hago merge y response
+  // Once I grab everything I merge the response
   fetchLaunchesRocketsFavorites().then(([launches, rockets, favorites]) => {
-    let final = [];
+    
+    const final = [];
 
-    _.map(launches, function(launch){
-      
-      //reduced dataset to send frontend
-      var rocket = {
+    launches.forEach(launch => {
+      // Reduced dataset to send frontend
+      const rocket = {
         "rocket_id": launch.rocket.rocket_id,
         "rocket_name": launch.rocket.rocket_name
       };
-
-      //grab rocket missing information
-      for (const fullRocket of rockets) {
-        if (fullRocket.rocket_id === rocket.rocket_id) {
-          rocket.active = fullRocket.active;
-          rocket.cost_per_launch = fullRocket.cost_per_launch;
-          rocket.company = fullRocket.company;          
-          break;
-        }
-      }  
-
-      var flight = {
+    
+      const fullRocket = rockets.find(fullRocket => fullRocket.rocket_id === rocket.rocket_id);
+    
+      if (fullRocket) {
+        rocket.active = fullRocket.active;
+        rocket.cost_per_launch = fullRocket.cost_per_launch;
+        rocket.company = fullRocket.company;
+      }
+    
+      const flight = {
         "favorite": false,
         "flight_number": launch.flight_number,
         "mission_name": launch.mission_name,
@@ -57,19 +55,14 @@ router.get('/', function(req, res, next) {
         "details": launch.details,
         "rocket": rocket
       };
-
-      //check flag favorite      
-      if(!_.isEmpty(favorites)){
-        for (const fav of favorites) {
-          if (fav.launch_id === flight.flight_number){
-            flight.favorite = true;
-            break;
-          }
-        }
+    
+      // Check flag favorite
+      if (!favorites.some(fav => fav.launch_id === flight.flight_number)) {
+        flight.favorite = true;
       }
-
+    
       final.push(flight);
-    });
+    });    
 
     res.send(final);
   }).catch((err) => {
