@@ -70,4 +70,33 @@ router.get('/', function(req, res, next) {
   });
 });
 
+/*
+Refactor to a map function
+
+fetchLaunchesRocketsFavorites().then(([launches, rockets, favorites]) => {
+  const final = launches.map(launch => {
+      const rocket = rockets.find(fullRocket => fullRocket.rocket_id === launch.rocket.rocket_id) || {};
+
+      return {
+          favorite: !favorites.some(fav => fav.launch_id === launch.flight_number),
+          flight_number: launch.flight_number,
+          mission_name: launch.mission_name,
+          mission_patch: launch.links.mission_patch,
+          details: launch.details,
+          rocket: {
+              rocket_id: launch.rocket.rocket_id,
+              rocket_name: launch.rocket.rocket_name,
+              active: rocket.active,
+              cost_per_launch: rocket.cost_per_launch,
+              company: rocket.company
+          }
+      };
+  });
+
+  res.send(final);
+}).catch((err) => {
+  return next(err);
+});
+*/
+
 module.exports = router;
